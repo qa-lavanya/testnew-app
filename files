@@ -1,1 +1,143 @@
-hdsbjhsbdhsdfbjsdfbnsdfbfsdsdfa
+hdsbjhsbdhsdfbjsdfbnsdfbfsdsdf
+
+
+
+
+
+
+files to work ona
+const fs = require('fs');
+const readline = require('readline');
+
+const TASKS_FILE = 'tasks.json';
+
+class Task {
+  constructor(description, completed = false) {
+    this.description = description;
+    this.completed = completed;
+  }
+}
+
+class ToDoList {
+  constructor() {
+    this.tasks = [];
+    this.loadTasks();
+  }
+
+  loadTasks() {
+    if (fs.existsSync(TASKS_FILE)) {
+      const data = fs.readFileSync(TASKS_FILE, 'utf8');
+      this.tasks = JSON.parse(data).map(t => new Task(t.description, t.completed));
+    }
+  }
+
+  saveTasks() {
+    fs.writeFileSync(TASKS_FILE, JSON.stringify(this.tasks, null, 2));
+  }
+
+  listTasks() {
+    if (this.tasks.length === 0) {
+      console.log("No tasks found.\n");
+      return;
+    }
+
+    console.log("\nYour To-Do List:");
+    this.tasks.forEach((task, index) => {
+      const status = task.completed ? '✓' : '✗';
+      console.log(`${index + 1}. [${status}] ${task.description}`);
+    });
+    console.log();
+  }
+
+  addTask(description) {
+    this.tasks.push(new Task(description));
+    console.log(`Added task: "${description}"`);
+  }
+
+  completeTask(index) {
+    if (index >= 0 && index < this.tasks.length) {
+      this.tasks[index].completed = true;
+      console.log(`Marked task ${index + 1} as completed.`);
+    } else {
+      console.log("Invalid task number.");
+    }
+  }
+
+  deleteTask(index) {
+    if (index >= 0 && index < this.tasks.length) {
+      const removed = this.tasks.splice(index, 1);
+      console.log(`Deleted task: "${removed[0].description}"`);
+    } else {
+      console.log("Invalid task number.");
+    }
+  }
+
+  clearTasks() {
+    this.tasks = [];
+    console.log("All tasks cleared.");
+  }
+}
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+function printMenu() {
+  console.log("\n=== To-Do List Menu ===");
+  console.log("1. List tasks");
+  console.log("2. Add task");
+  console.log("3. Complete task");
+  console.log("4. Delete task");
+  console.log("5. Clear all tasks");
+  console.log("6. Exit");
+  console.log("=======================\n");
+}
+
+function promptInput(prompt) {
+  return new Promise(resolve => rl.question(prompt, resolve));
+}
+
+async function main() {
+  const todo = new ToDoList();
+
+  while (true) {
+    printMenu();
+    const choice = await promptInput("Choose an option (1-6): ");
+
+    if (choice === "1") {
+      todo.listTasks();
+    } else if (choice === "2") {
+      const desc = await promptInput("Enter task description: ");
+      if (desc.trim()) {
+        todo.addTask(desc.trim());
+      } else {
+        console.log("Description cannot be empty.");
+      }
+    } else if (choice === "3") {
+      todo.listTasks();
+      const index = await promptInput("Enter task number to complete: ");
+      todo.completeTask(parseInt(index) - 1);
+    } else if (choice === "4") {
+      todo.listTasks();
+      const index = await promptInput("Enter task number to delete: ");
+      todo.deleteTask(parseInt(index) - 1);
+    } else if (choice === "5") {
+      const confirm = await promptInput("Are you sure? (y/n): ");
+      if (confirm.toLowerCase() === 'y') {
+        todo.clearTasks();
+      }
+    } else if (choice === "6") {
+      todo.saveTasks();
+      console.log("Tasks saved. Goodbye!");
+      break;
+    } else {
+      console.log("Invalid option. Try again.");
+    }
+  }
+
+  rl.close();
+}
+
+main();
+
